@@ -2,7 +2,8 @@ from mpmath import mp
 from scipy import special
 import numpy as np
 
-SECONDS_PER_YEAR = 31556953
+# DURATION = 31556953  # one year
+DURATION = 86400  # one day
 
 # inverse CDF
 def cdfinv(x):
@@ -19,7 +20,7 @@ def invariant(x, y, strike, sigma, tau):
     # mp.mpf(*) wrapping done just in case args aren't already mpfs
     yTerm = cdfinv(y / mp.mpf(strike))
     xTerm = cdfinv(mp.mpf(1) - x)
-    sigmaSqrtTau = sigma * mp.sqrt(tau / mp.mpf(SECONDS_PER_YEAR))
+    sigmaSqrtTau = sigma * mp.sqrt(tau / mp.mpf(DURATION))
     print(yTerm)
     print(xTerm)
     print(sigmaSqrtTau)
@@ -28,7 +29,7 @@ def invariant(x, y, strike, sigma, tau):
 def invariant_scipy(x, y, strike, sigma, tau):
     yTerm = cdfinv_scipy(np.float64(y) / strike)
     xTerm = cdfinv_scipy(np.float64(1) - x)
-    sigmaSqrtTau = sigma * np.sqrt(tau / np.float64(SECONDS_PER_YEAR))
+    sigmaSqrtTau = sigma * np.sqrt(tau / np.float64(DURATION))
 #    print(yTerm)
 #    print(xTerm)
 #    print(sigmaSqrtTau)
@@ -36,14 +37,14 @@ def invariant_scipy(x, y, strike, sigma, tau):
 
 # "implied" y value given other params (subtracted from "real" y value in original invariant formula)
 def implied_y(x, strike, sigma, tau):
-    tau = tau / mp.mpf(SECONDS_PER_YEAR)
+    tau = tau / mp.mpf(DURATION)
     return strike * mp.ncdf(cdfinv(mp.mpf(1) - x) - sigma * mp.sqrt(tau))
 
 def invariant_original(x, y, strike, sigma, tau):
     return y - implied_y(x, strike, sigma, tau)
 
 def spot_price_volatile_asset(x, y, strike, sigma, tau):
-    tau = tau / mp.mpf(SECONDS_PER_YEAR)
+    tau = tau / mp.mpf(DURATION)
     price = strike
     price *= mp.exp(cdfinv(mp.mpf(1) - x) * sigma * tau)
     price *= mp.exp(mp.mpf(-0.5) * mp.power(sigma, 2) * tau)
@@ -56,14 +57,14 @@ def get_dy(x, strike, sigma, tau, dx):
 
 def get_y(x, y, strike, sigma, tau, dx):
     assert(dx >= 0)
-    return y + get_dy(x, y, strike, sigma, tau, dx)
+    return y + get_dy(x, strike, sigma, tau, dx)
 
 def get_x(x, y, strike, sigma, tau, dy):
     assert(dy >= 0)
 
     # call other functions PRIOR to scaling tau
     k = invariant_original(x, y, strike, sigma, tau)
-    tau = tau / mp.mpf(SECONDS_PER_YEAR)
+    tau = tau / mp.mpf(DURATION)
     return 1 - mp.ncdf(cdfinv((mp.mpf(y) + dy - k) / strike) + sigma * mp.sqrt(tau))
 
 # will return a negative number as dy postive => dx negative
