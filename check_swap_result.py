@@ -1,6 +1,7 @@
 import argparse
 from mpmath import mp
 import primitive
+from eth_abi import encode
 
 mp.dps = 42
 
@@ -31,22 +32,25 @@ x_end = mp.mpf(args.xprime) / 1e18
 y_end = mp.mpf(args.yprime) / 1e18
 # print(y_end)
 
+# I am lazy so I am hardcoding the pool fee. Protocol fee is zero.
+fee_multiplier = mp.mpf(0.997)  # 30 basis points
+
 if (x_end > x_start):
     # asset was sold
-    dx = x_end - x_start
+    dx = fee_multiplier * (x_end - x_start)
     y_highprec = primitive.get_y(x_start, y_start, strike, sigma, tau, dx)
 #    print(y_end)
 #    print(y_highprec)
     err = (y_end - y_highprec) / y_highprec
     if err != 0:
         err = err * mp.sign(err)
-#    print("err: ", err)
+    print("err: ", err)
     output = y_highprec
 else:
     # asset was purchased
     assert(y_end > y_start)
-    dy = y_end - y_start
-    y_highprec = primitive.get_x(x_start, y_start, strike, sigma, tau, dy)
+    dy = fee_multiplier * (y_end - y_start)
+    x_highprec = primitive.get_x(x_start, y_start, strike, sigma, tau, dy)
 #    print(x_end)
 #    print(x_highprec)
     err = (x_end - x_highprec) / x_highprec
@@ -55,5 +59,6 @@ else:
 #    print("err: ", err)
     output = x_highprec
 
-output = mp.nint(output * 1e18)
-print(int(output))
+output = int(mp.nint(output * 1e18))
+print(output)
+print(encode(['uint256'], [output]))
