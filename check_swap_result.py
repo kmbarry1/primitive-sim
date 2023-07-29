@@ -40,25 +40,35 @@ if (x_end > x_start):
     dx = fee_multiplier * (x_end - x_start)
     y_highprec = primitive.get_y(x_start, y_start, strike, sigma, tau, dx)
 #    print(y_end)
-#    print(y_highprec)
-    err = (y_end - y_highprec) / y_highprec
-    if err != 0:
-        err = err * mp.sign(err)
-    print("err: ", err)
-    output = y_highprec
+#    print("y_highprec: ", y_highprec)
+    if y_highprec < 0:
+        # can't go below zero
+        y_highprec = 0
+    newDependent = y_highprec
+    ideal_output = y_start - y_highprec
+    assert(ideal_output > 0)
+    real_output = y_start - y_end
+    err = (real_output - ideal_output) / ideal_output
+    err = err * mp.sign(err)
+#    print("err: ", err)
 else:
     # asset was purchased
     assert(y_end > y_start)
     dy = fee_multiplier * (y_end - y_start)
     x_highprec = primitive.get_x(x_start, y_start, strike, sigma, tau, dy)
 #    print(x_end)
-#    print(x_highprec)
-    err = (x_end - x_highprec) / x_highprec
-    if err != 0:
-        err = err * mp.sign(err)
+#    print("x_highprec", x_highprec)
+    if x_highprec < 0:
+        # can't go below zero
+        x_highprec = 0
+    newDependent = x_highprec
+    ideal_output = x_start - x_highprec
+    assert(ideal_output > 0)
+    real_output = x_start - x_end
+    err = (real_output - ideal_output) / ideal_output
+    err = err * mp.sign(err)
 #    print("err: ", err)
-    output = x_highprec
 
-output = int(mp.nint(output * 1e18))
-print(output)
-print(encode(['uint256'], [output]))
+newDependent = int(mp.nint(newDependent * 1e18))
+#print(newDependent)
+print("0x" + encode(['uint256'], [newDependent]).hex())
